@@ -1,4 +1,4 @@
-from sorter.utils.gdrive.gdrive_helper import GoogleDrive
+from sorter.utils.gdrive.gdrive_helper import AnimeGoogleDrive
 from sorter.utils.Regex_utils.regex_helper import AnimeRegex
 import signal
 
@@ -8,6 +8,6 @@ def keyboard_exit(signal, frame):
 
 signal.signal(signal.SIGINT, keyboard_exit)
 
-anime_regex = AnimeRegex(GoogleDrive)
+anime_regex = AnimeRegex(AnimeGoogleDrive)
 anime_regex.match_by_regex()
 

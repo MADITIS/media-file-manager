@@ -1,15 +1,122 @@
-from ..gdrive import Credentials, build, service_account, HttpError
-from ..exceptions.config_err import EmptyFolderError
-import sorter
-from sorter.settings import config
 import logging
 import os
 import random
-from typing import List, Any, Union
+from typing import Any, List, Union
+
+import sorter
+from sorter.settings import config
+
+from ..exceptions.config_err import EmptyFolderError
+from ..gdrive import Credentials, HttpError, build, service_account
 
 logger = logging.getLogger(__name__)
 
 class GoogleDrive:
+    '''
+    Base Class for all Drive Sub classes
+    '''
+    SERVICE_ACCOUNTS: int = random.randrange(sorter.service_account_index)
+    build_object = Any
+
+
+    def __init__(self) -> None:
+        self.__auth_scopes = ['https://www.googleapis.com/auth/drive']
+        logger.debug(f"Base Class {__class__.__name__} Initialized.")
+        logger.info('Creating Service...')
+        self.__service = self.__create_service()
+        logger.info(f'Service is created')
+
+        
+    def __create_service(self) -> build_object:
+        '''
+        Main Method To Create Service.
+        '''
+        logger.info(f'Authorizing with {AnimeGoogleDrive.SERVICE_ACCOUNTS}.json service account') 
+        try:
+            cred = service_account.Credentials.from_service_account_file(
+                                                        f'accounts/{GoogleDrive.SERVICE_ACCOUNTS}.json',
+                                                        scopes=self.__auth_scopes
+                                                        )
+        except FileNotFoundError as err:
+            logger.error(f'{err!s} Exiting...')
+            exit(0)
+
+
+        try:
+            service = build('drive', 'v3', credentials=cred)
+            logger.info(f'authorization complete with {GoogleDrive.SERVICE_ACCOUNTS}.json service account')
+        except HttpError as err:
+            logger.error(f'{err!s} Exiting...')
+            exit(0)
+        else:
+            # add normal account
+            ...
+
+        return service
+
+
+    def is_folder_exist(self, folder_name: str, destination_folder_id: str):   
+        query = "name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and '{destination_folder_id}'\
+         in parents and trashed=false"
+
+        token = None
+        while True:
+            results = self.__service.files().list(
+                                    driveId=config.DRIVE_SOURCE_DRIVE_ID,
+                                    q=query,
+                                    corpora='teamDrive',
+                                    supportsAllDrives = True,
+                                    pageToken = token,
+                                    pageSize = 500,
+                                    includeItemsFromAllDrives  = True,	
+                                    fields='nextPageToken, files(id,name,mimeType)'
+                                    ).execute()
+
+            files = results.get("files", [])
+            
+            if not files:
+                return False
+            
+            print(files)
+            
+
+            token = results.get("nextPageToken")
+
+
+    # @staticmethod
+    # def create_folder(metadata):
+    #     create = service.files().create(
+    #         supportsAllDrives = True,
+    #         body = metadata,
+    #         fields = "id",
+    #     ).execute()
+
+    #     return create.get("id")    
+
+    # @staticmethod    
+    # def move_file(previous_parent,new_parent,file_id,folder_name):
+    #     try:
+    #         move = service.files().update(
+    #             supportsAllDrives = True,
+    #             fileId = file_id,
+    #             addParents= new_parent,
+    #             removeParents = previous_parent,
+    #             fields='id, parents, name, size',
+    #                     ).execute() 
+
+    #         moved_folder_id = move.get("parents")[0]
+    #         name = move.get("name")
+    #         size = int(move.get("size"))
+    #         fileid = move.get("id")
+    #         info_side = info.GetInfo()
+    #         move_size = info_side.get_size(size)
+    #         info_side.sendinfo(folder_name,name,moved_folder_id,move_size)
+
+    #     except HttpError as err:
+    #         pass          
+
+
+class AnimeGoogleDrive(GoogleDrive): 
     '''
     Handles Google Drive Api objects And operations.
 
@@ -24,8 +131,7 @@ class GoogleDrive:
                 Builds the service for the Api.
     '''
     
-    SERVICE_ACCOUNTS: int = random.randrange(sorter.service_account_index)
-    build_object = Any
+
 
 
     def __init__(self) -> None:
@@ -38,43 +144,14 @@ class GoogleDrive:
         __services: Service Object
                 Builds the service for the Api        
         '''
+        super().__init__()
 
         self.__initial_search_results: list[dict[str, str]] = []
-        self.__auth_scopes = ['https://www.googleapis.com/auth/drive']
-        logger.info('Creating Service...')
-        self.__service = self.__create_service()
-        logger.info(f'Service is created')
     
 
     def __str__(self) -> str:
         return f'{__class__.__name__} ({self})'
 
-    
-    def __create_service(self) -> build_object:
-        '''
-        Main Method To Create Service.
-        '''
-        logger.info(f'Authorizing with {GoogleDrive.SERVICE_ACCOUNTS}.json service account') 
-        try:
-            cred = service_account.Credentials.from_service_account_file(
-                                                        f'accounts/{GoogleDrive.SERVICE_ACCOUNTS}.json',
-                                                        scopes=self.__auth_scopes
-                                                        )
-        except FileNotFoundError as err:
-            logger.error(f'{err!s} Exiting...')
-            exit(0)
-
-
-        try:
-            service = build('drive', 'v3', credentials=cred)
-            logger.info(f'authorization complete with {GoogleDrive.SERVICE_ACCOUNTS}.json service account')
-        except (HttpError, FileNotFoundError) as err:
-            logger.error(f'{err!s} Exiting...')
-            exit(0)
-        else:
-            pass
-
-        return service
 
     @property
     def drive_search_results(self) -> list[dict[str, str]]:
@@ -88,7 +165,7 @@ ________________________________________________________________________________
                          )
         token = None
         while True:
-            results = self.__service.files().list(
+            results = self._GoogleDrive__service.files().list( #type: ignore
                                                 # q = "parents in '"+self.folder_id+"' and trashed = false",
                                                 driveId = config.DRIVE_SOURCE_DRIVE_ID,
                                                 q = query,
@@ -113,7 +190,7 @@ ________________________________________________________________________________
             if not token:
                 break
 
-        logger.debug('Search Over\n_____________________________________________________________________________________\
+        logger.debug('Search Finished\n_____________________________________________________________________________________\
 _________________________________________________________________________________________________________________________ '
                          )
         logger.info(f'Total Results Found: {len(self.__initial_search_results)}')

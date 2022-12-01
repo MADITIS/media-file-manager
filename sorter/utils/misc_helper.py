@@ -1,10 +1,18 @@
-from sorter import logging
-from pathlib import Path
-import os
-from typing import Callable, Type, List, Union
 import csv
+import os
+from pathlib import Path
+from typing import Callable, List, Optional, Type, Union
+
+from sorter import logging
 
 logger = logging.getLogger(__name__)
+
+def regex_log(base_func: Callable) -> Callable:
+    def wrapper(obj):
+        logger.info(f'Executing {base_func.__name__} function')
+        base_func(obj)
+    
+    return wrapper
 
 class ModifyName:
     '''
@@ -18,17 +26,25 @@ class ModifyName:
         return True if name in best_release else False
 
 
-    def cleaned(self, title: str) -> Union[str, None]:
+    def cleaned(self, title: str) -> str:
         for i in self.exclude:
             if i in title:
                 try:
                     title = title.split(i)[0].strip()
                 except (IndexError, AttributeError) as err:
-                    logger.error(f'{err!s}')
-                    continue 
+                    logger.error(f'{err!s}') 
                 else:
                     return title
         return title
+
+    def get_release_date(self, air_date: str) -> Union[str, None]:
+
+        try:
+            release_date: str = air_date.split(',')[1].split('to')[0].strip()
+        except Exception as err:
+            logger.error('Some UnexpectedError')
+        else:
+            return release_date
     
     # def test2(cls)
 
@@ -59,9 +75,11 @@ class File:
                 result = [line['name'] for line in lines]
             return result
 
-    def get_english_names(self):
+    def get_english_names(self, ):
         ...
 
     def get_alt_names(self):
         ...
 
+file_handler = File()
+str_handler = ModifyName()
