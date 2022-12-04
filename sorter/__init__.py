@@ -6,7 +6,7 @@ from sorter.utils.exceptions import ServiceAccountMissing, ConfigSettingsMissing
 
 # create a logger
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG,handlers=[logging.FileHandler('sorter/sorter.log', mode='w',
+                    level=logging.INFO,handlers=[logging.FileHandler('sorter/sorter.log', mode='w',
                     encoding='utf-8') ,logging.StreamHandler()], datefmt='%m/%d/%Y %H:%M:%S')
 
 logger = logging.getLogger(__name__)

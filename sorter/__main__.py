@@ -11,3 +11,5 @@ signal.signal(signal.SIGINT, keyboard_exit)
 anime_regex = AnimeRegex(AnimeGoogleDrive)
 anime_regex.match_by_regex()
 
+# drive = AnimeGoogleDrive()
+# print(drive.is_folder_exist('test', '1mB1PUbkxXfl1o4RJO5l9_VBGZ7WGiIj2'))
